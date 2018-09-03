@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#Golbal variables
+
+filename=$1
+openTextEditorAnswer=$2
+
+#Methods
+
+writingHtmlToIndex(){
+	echo "creating basic data into the files"
+	cat<<-_EOF_ >> ./$filename/index.html
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta http-equiv="X-UA-Compatible" content="ie=edge">
+			<title>Document</title>
+		</head>
+		<body>
+		
+		</body>
+		</html>
+	_EOF_
+}
+
+showingTheResults(){
+	echo "the following items are created"
+	ls -l -F -R ./$filename
+}
+
+creatingItems(){
+	mkdir $filename
+	if [ -e ./$filename ];then
+		echo "dirictory $filename is created"
+	else 
+		echo "failed to create the file"
+	fi
+	mkdir ./${filename}/css ./${filename}/img ./${filename}/javascript 
+	touch ./${filename}/css/style.css ./${filename}/javascript/script.js
+}
+
+#main script
+
+if [ -e ./$1 ];then
+	echo "file name '$1' already exist"
+else
+	creatingItems
+	writingHtmlToIndex
+	showingTheResults
+	if [ "$openTextEditorAnswer" == "-y" ];then
+		code ./${filename}
+		echo "opening the file with viseal studio code"
+	fi
+fi
+
+
