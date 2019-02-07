@@ -1,15 +1,21 @@
 #!/bin/bash
 
-#Golbal variables
+dirName=""
 
-filename=$1
-openTextEditorAnswer=$2
-
-#Methods
-
+#functions for normal template
+creatingItems(){
+	mkdir $1
+	if [ -e ./$1 ];then
+		echo "directory $1 is created"
+	else 
+		echo "failed to create the file"
+	fi
+	mkdir ./${1}/css ./${1}/img ./${1}/javascript 
+	touch ./${1}/css/style.css ./${1}/javascript/script.js
+}
 writingHtmlToIndex(){
 	echo "creating basic data into the files"
-	cat<<-_EOF_ >> ./$filename/index.html
+	cat<<-_EOF_ >> ./$1/index.html
 		<!DOCTYPE html>
 		<html lang="en">
 		<head>
@@ -19,40 +25,131 @@ writingHtmlToIndex(){
 			<title>Document</title>
 		</head>
 		<body>
-		
+			<script src="./javascript/script.js"></script>	
 		</body>
 		</html>
 	_EOF_
 }
 
-showingTheResults(){
-	echo "the following items are created"
-	ls -l -F -R ./$filename
-}
-
-creatingItems(){
-	mkdir $filename
-	if [ -e ./$filename ];then
-		echo "dirictory $filename is created"
+#functions for webpack
+creatingItemsForWebpack() {
+	mkdir $1
+	if [ -e ./$1 ];then
+		echo "directory $1 is created"
 	else 
 		echo "failed to create the file"
 	fi
-	mkdir ./${filename}/css ./${filename}/img ./${filename}/javascript 
-	touch ./${filename}/css/style.css ./${filename}/javascript/script.js
+	mkdir -p ./$1/public/style ./$1/public/images ./$1/public/scripts
+	mkdir ./$1/src
+	touch ./$1/public/css/style.css ./$1/src/index.js
+}
+writingHtmlToIndexWebpack(){
+	echo "creating basic data into the files"
+cat<<-_EOF_ >> ./$1/public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script src="./javascript/bundle.js"></script>	
+</body>
+</html>
+_EOF_
+}
+writingConfig(){
+cat<<-eof >> $1/package.json
+{
+    "name": "hangman",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "build": "webpack --mode production",
+        "dev-server": "webpack-dev-server --mode development"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "babel-cli": "^6.26.0",
+        "babel-core": "^6.26.3",
+        "babel-loader": "^7.1.5",
+        "babel-polyfill": "^6.26.0",
+        "babel-preset-env": "^1.6.1",
+        "live-server": "^1.2.1",
+        "webpack": "^4.29.2",
+        "webpack-cli": "^3.2.3",
+        "webpack-dev-server": "^3.1.14"
+    }
+}
+eof
 }
 
-#main script
+writingWebpackConfig(){
+cat<<-eof >> $1/webpack.config.js
+const path = require('path')
+module.exports = {
+    entry: ['babel-polyfill', './src/index.js'],
+    output: {
+        path: path.resolve(__dirname, 'public/scripts'),
+        filename: 'bundle.js'
+    },
+    module: {
+        rules: [{
+            test: /\.js$/,
+            exclude: /node_modules/, 
+            use: {
+                loader: 'babel-loader',
+                options: {
+                    presets: ['env']
+                }
+            },
+        }]
+    },
+    devServer: {
+        contentBase: path.resolve(__dirname, 'public'),
+        publicPath: '/scripts/'
+    },
+    devtool: 'source-map'
+}
+eof
+    
+}
 
-if [ -e ./$1 ];then
-	echo "file name '$1' already exist"
-else
-	creatingItems
-	writingHtmlToIndex
-	showingTheResults
-	if [ "$openTextEditorAnswer" == "-y" ];then
-		code ./${filename}
-		echo "opening the file with viseal studio code"
-	fi
-fi
+showingTheResults(){
+	echo "the following items are created"
+	ls -l -F -R ./$1
+}
 
 
+while getopts f:xnwe:xi opt
+do
+    case $opt in
+    f) 
+        dirName=$OPTARG
+    ;;
+    n)
+        creatingItems $dirName
+        writingHtmlToIndex $dirName
+        showingTheResults $dirName
+    ;;
+    w)
+        creatingItemsForWebpack $dirName
+        writingHtmlToIndexWebpack $dirName
+        writingConfig $dirName
+        writingWebpackConfig $dirName
+        showingTheResults $dirName
+    ;;
+    e)
+        echo "opening directory with $OPTARG"
+        $OPTARG $dirName
+    ;;
+    i)
+        cd $dirName 
+        npm install
+    ;;
+    esac
+done
